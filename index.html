@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة اختيار الشخصيات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 2px solid black;
+            display: none;
+        }
+        #characterSelect {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="characterSelect">
+        <h2>اختر شخصيتك</h2>
+        <button onclick="selectCharacter('tank')">الدبابة</button>
+        <button onclick="selectCharacter('soldier')">الجندي</button>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script src="game.js"></script>
+</body>
+</html>
