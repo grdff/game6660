@@ -1,63 +1,23 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة قتال متعددة اللاعبين</title>
+    <title>لعبة قتال</title>
     <style>
         #gameCanvas {
             border: 1px solid black;
         }
-        .controls {
-            display: none;
-        }
     </style>
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+    <!-- Firebase compat libraries for non-modular environments -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-    <h1>اختر شخصية لكل لاعب</h1>
-
-    <!-- قائمة اختيار الشخصية للاعب 1 -->
-    <div>
-        <h2>اللاعب 1:</h2>
-        <button onclick="selectCharacter(1, 'player1')">شخصية 1</button>
-        <button onclick="selectCharacter(1, 'player2')">شخصية 2</button>
-    </div>
-
-    <!-- قائمة اختيار الشخصية للاعب 2 -->
-    <div>
-        <h2>اللاعب 2:</h2>
-        <button onclick="selectCharacter(2, 'player1')">شخصية 1</button>
-        <button onclick="selectCharacter(2, 'player2')">شخصية 2</button>
-    </div>
-
-    <!-- عرض التحكم لكل لاعب -->
-    <div id="controlsPlayer1" class="controls">
-        <h3>تحكم اللاعب 1:</h3>
-        <p>استخدم الأسهم للتحرك والمسافة لإطلاق النار</p>
-    </div>
-
-    <div id="controlsPlayer2" class="controls">
-        <h3>تحكم اللاعب 2:</h3>
-        <p>استخدم W,A,S,D للتحرك وF لإطلاق النار</p>
-    </div>
-
+    <h1>لعبة قتال بسيطة</h1>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-
-        let player1 = null;
-        let player2 = null;
-
-        const players = {
-            player1: { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5 },
-            player2: { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5 }
-        };
-
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyAgv4ga8tVfSjo-t_i4s6QrWMKwtLE5B1w",
@@ -73,73 +33,83 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function selectCharacter(player, character) {
-            if (player === 1) {
-                player1 = players[character];
-                document.getElementById('controlsPlayer1').style.display = 'block';
-                updatePlayerInDB(1, player1);  // تحديث بيانات اللاعب 1 في Firebase
-            } else if (player === 2) {
-                player2 = players[character];
-                document.getElementById('controlsPlayer2').style.display = 'block';
-                updatePlayerInDB(2, player2);  // تحديث بيانات اللاعب 2 في Firebase
-            }
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-            if (player1 && player2) {
-                startGame();
-            }
-        }
+        // Initialize player data
+        let player1 = { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5, health: 100 };
+        let player2 = { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5, health: 100 };
 
-        // تحديث موقع اللاعب في Firebase
-        function updatePlayerInDB(playerNumber, playerData) {
-            db.ref('players/player' + playerNumber).set({
-                x: playerData.x,
-                y: playerData.y,
-                color: playerData.color
-            });
-        }
-
-        // الاستماع للتغييرات في بيانات Firebase
-        db.ref('players').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data.player1) {
-                player1 = data.player1;
-            }
-            if (data.player2) {
-                player2 = data.player2;
-            }
-        });
-
+        // Function to draw players
         function drawPlayer(player) {
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
         }
 
-        function startGame() {
-            document.addEventListener('keydown', movePlayers);
-            update();
+        // Sync player data with Firebase
+        function updatePlayerInDB(playerNumber, playerData) {
+            db.ref('players/player' + playerNumber).set({
+                x: playerData.x,
+                y: playerData.y,
+                health: playerData.health
+            });
         }
 
-        function movePlayers(e) {
-            if (e.key === 'ArrowUp') player1.y -= player1.speed;
-            if (e.key === 'ArrowDown') player1.y += player1.speed;
-            if (e.key === 'ArrowLeft') player1.x -= player1.speed;
-            if (e.key === 'ArrowRight') player1.x += player1.speed;
+        // Listen for changes in Firebase
+        db.ref('players').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data.player1) {
+                player1.x = data.player1.x;
+                player1.y = data.player1.y;
+                player1.health = data.player1.health;
+            }
+            if (data.player2) {
+                player2.x = data.player2.x;
+                player2.y = data.player2.y;
+                player2.health = data.player2.health;
+            }
+        });
 
-            if (e.key === 'w') player2.y -= player2.speed;
-            if (e.key === 's') player2.y += player2.speed;
-            if (e.key === 'a') player2.x -= player2.speed;
-            if (e.key === 'd') player2.x += player2.speed;
-
+        // Control player movement
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                    player1.y -= player1.speed;
+                    break;
+                case 'ArrowDown':
+                    player1.y += player1.speed;
+                    break;
+                case 'ArrowLeft':
+                    player1.x -= player1.speed;
+                    break;
+                case 'ArrowRight':
+                    player1.x += player1.speed;
+                    break;
+                case 'w':
+                    player2.y -= player2.speed;
+                    break;
+                case 's':
+                    player2.y += player2.speed;
+                    break;
+                case 'a':
+                    player2.x -= player2.speed;
+                    break;
+                case 'd':
+                    player2.x += player2.speed;
+                    break;
+            }
             updatePlayerInDB(1, player1);
             updatePlayerInDB(2, player2);
-        }
+        });
 
+        // Game loop to draw players
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (player1) drawPlayer(player1);
-            if (player2) drawPlayer(player2);
+            drawPlayer(player1);
+            drawPlayer(player2);
             requestAnimationFrame(update);
         }
+        update();
     </script>
 </body>
 </html>
