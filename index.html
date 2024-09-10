@@ -11,7 +11,7 @@
 
         /* تحكم اللاعب */
         .control-buttons {
-            position: absolute;
+            position: fixed;
             bottom: 10px;
             left: 10px;
         }
@@ -27,7 +27,7 @@
         }
 
         .fire-button {
-            position: absolute;
+            position: fixed;
             bottom: 10px;
             right: 10px;
             width: 80px;
@@ -38,6 +38,41 @@
             border: none;
             border-radius: 50%;
         }
+        
+        .control-buttons-2 {
+            position: fixed;
+            bottom: 10px;
+            left: 70px;
+        }
+
+        .control-button-2 {
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            background-color: lightgray;
+            border: none;
+            font-size: 20px;
+            border-radius: 50%;
+        }
+
+        .fire-button-2 {
+            position: fixed;
+            bottom: 10px;
+            right: 100px;
+            width: 80px;
+            height: 80px;
+            background-color: blue;
+            color: white;
+            font-size: 20px;
+            border: none;
+            border-radius: 50%;
+        }
+
+        /* إخفاء أزرار التحكم الخاصة باللاعب 2 بشكل افتراضي */
+        .control-buttons-2,
+        .fire-button-2 {
+            display: none;
+        }
     </style>
     <!-- Firebase compat libraries for non-modular environments -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -47,16 +82,27 @@
     <h1>لعبة قتال بسيطة</h1>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <!-- أزرار التحكم للاعب -->
-    <div class="control-buttons">
-        <button class="control-button" id="upBtn">↑</button><br>
-        <button class="control-button" id="leftBtn">←</button>
-        <button class="control-button" id="downBtn">↓</button>
-        <button class="control-button" id="rightBtn">→</button>
+    <!-- أزرار التحكم للاعب 1 -->
+    <div class="control-buttons" id="controlsPlayer1">
+        <button class="control-button" id="upBtn1">↑</button><br>
+        <button class="control-button" id="leftBtn1">←</button>
+        <button class="control-button" id="downBtn1">↓</button>
+        <button class="control-button" id="rightBtn1">→</button>
     </div>
 
-    <!-- زر إطلاق النار -->
-    <button class="fire-button" id="fireBtn">إطلاق</button>
+    <!-- زر إطلاق النار للاعب 1 -->
+    <button class="fire-button" id="fireBtn1">إطلاق</button>
+
+    <!-- أزرار التحكم للاعب 2 -->
+    <div class="control-buttons-2" id="controlsPlayer2">
+        <button class="control-button-2" id="upBtn2">↑</button><br>
+        <button class="control-button-2" id="leftBtn2">←</button>
+        <button class="control-button-2" id="downBtn2">↓</button>
+        <button class="control-button-2" id="rightBtn2">→</button>
+    </div>
+
+    <!-- زر إطلاق النار للاعب 2 -->
+    <button class="fire-button-2" id="fireBtn2">إطلاق</button>
 
     <script>
         // Firebase configuration
@@ -77,14 +123,52 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Initialize player data
-        let player1 = { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5, health: 100 };
-        let player2 = { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5, health: 100 };
+        // Initialize player and game data
+        let player1 = { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5, health: 100, bullets: [] };
+        let player2 = { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5, health: 100, bullets: [] };
+        const bulletSpeed = 8;
+        const maxDistanceToHit = 200; // مسافة الإصابة أكبر
+
+        // حواجز
+        const obstacles = [
+            { x: 300, y: 200, width: 100, height: 100 },  // حاجز في وسط الشاشة
+            { x: 500, y: 400, width: 150, height: 50 }    // حاجز آخر
+        ];
 
         // Function to draw players
         function drawPlayer(player) {
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        // Function to draw bullets
+        function drawBullet(bullet) {
+            ctx.fillStyle = 'yellow';
+            ctx.fillRect(bullet.x, bullet.y, 10, 10);
+        }
+
+        // Function to draw obstacles
+        function drawObstacles() {
+            ctx.fillStyle = 'gray';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        // Check for collision with obstacles
+        function checkCollision(obj, obstacle) {
+            return obj.x < obstacle.x + obstacle.width &&
+                   obj.x + 10 > obstacle.x &&
+                   obj.y < obstacle.y + obstacle.height &&
+                   obj.y + 10 > obstacle.y;
+        }
+
+        // Check if bullet hits player
+        function checkBulletHitPlayer(bullet, player) {
+            return bullet.x < player.x + player.width &&
+                   bullet.x + 10 > player.x &&
+                   bullet.y < player.y + player.height &&
+                   bullet.y + 10 > player.y;
         }
 
         // Sync player data with Firebase
@@ -112,70 +196,98 @@
         });
 
         // Control player movement
-        document.addEventListener('keydown', (e) => {
-            handleMovement(e.key);
-        });
-
-        // Functions to handle button presses on mobile
-        document.getElementById('upBtn').addEventListener('click', () => handleMovement('ArrowUp'));
-        document.getElementById('downBtn').addEventListener('click', () => handleMovement('ArrowDown'));
-        document.getElementById('leftBtn').addEventListener('click', () => handleMovement('ArrowLeft'));
-        document.getElementById('rightBtn').addEventListener('click', () => handleMovement('ArrowRight'));
-
-        function handleMovement(direction) {
+        function handleMovement(player, direction) {
             switch (direction) {
                 case 'ArrowUp':
-                    player1.y -= player1.speed;
+                    if (!checkCollision({ x: player.x, y: player.y - player.speed, width: player.width, height: player.height }, getObstacles())) {
+                        player.y -= player.speed;
+                    }
                     break;
                 case 'ArrowDown':
-                    player1.y += player1.speed;
+                    if (!checkCollision({ x: player.x, y: player.y + player.speed, width: player.width, height: player.height }, getObstacles())) {
+                        player.y += player.speed;
+                    }
                     break;
                 case 'ArrowLeft':
-                    player1.x -= player1.speed;
+                    if (!checkCollision({ x: player.x - player.speed, y: player.y, width: player.width, height: player.height }, getObstacles())) {
+                        player.x -= player.speed;
+                    }
                     break;
                 case 'ArrowRight':
-                    player1.x += player1.speed;
+                    if (!checkCollision({ x: player.x + player.speed, y: player.y, width: player.width, height: player.height }, getObstacles())) {
+                        player.x += player.speed;
+                    }
                     break;
             }
-            updatePlayerInDB(1, player1);
-        }
-
-        // Button to fire
-        document.getElementById('fireBtn').addEventListener('click', () => fire());
-
-        function fire() {
-            const distance = Math.sqrt(Math.pow(player1.x - player2.x, 2) + Math.pow(player1.y - player2.y, 2));
-            const maxDistanceToHit = 10000; // المسافة المسموحة للإصابة
-
-            if (distance <= maxDistanceToHit) {
-                player2.health -= 10;
-                updatePlayerInDB(2, player2);
-                alert("إصابة! صحة اللاعب 2: " + player2.health);
-                if (player2.health <= 0) {
-                    alert("اللاعب 1 فاز!");
-                    resetGame();
-                }
-            } else {
-                alert("اللاعب بعيد جدًا للإصابة");
-            }
-        }
-
-        // Reset the game
-        function resetGame() {
-            player1 = { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5, health: 100 };
-            player2 = { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5, health: 100 };
             updatePlayerInDB(1, player1);
             updatePlayerInDB(2, player2);
         }
 
-        // Game loop to draw players
-        function update() {
+        // Functions to handle button presses on mobile for player 1
+        document.getElementById('upBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowUp'));
+        document.getElementById('downBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowDown'));
+        document.getElementById('leftBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowLeft'));
+        document.getElementById('rightBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowRight'));
+
+        // Functions to handle button presses on mobile for player 2
+        document.getElementById('upBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowUp'));
+        document.getElementById('downBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowDown'));
+        document.getElementById('leftBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowLeft'));
+        document.getElementById('rightBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowRight'));
+
+        // Button to fire bullets for player 1
+        document.getElementById('fireBtn1').addEventListener('click', () => fire(player1));
+
+        // Button to fire bullets for player 2
+        document.getElementById('fireBtn2').addEventListener('click', () => fire(player2));
+
+        function fire(player) {
+            player.bullets.push({ x: player.x + player.width / 2, y: player.y, direction: 'up' });
+        }
+
+        // Update the game state
+        function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // رسم اللاعبين
             drawPlayer(player1);
             drawPlayer(player2);
-            requestAnimationFrame(update);
+
+            // رسم الحواجز
+            drawObstacles();
+
+            // تحديث الرصاصات
+            player1.bullets.forEach((bullet, index) => {
+                bullet.y -= bulletSpeed;
+
+                if (obstacles.some(obstacle => checkCollision(bullet, obstacle))) {
+                    player1.bullets.splice(index, 1);
+                } else if (checkBulletHitPlayer(bullet, player2)) {
+                    player2.health -= 10;
+                    player1.bullets.splice(index, 1);
+                } else {
+                    drawBullet(bullet);
+                }
+            });
+
+            player2.bullets.forEach((bullet, index) => {
+                bullet.y += bulletSpeed;
+
+                if (obstacles.some(obstacle => checkCollision(bullet, obstacle))) {
+                    player2.bullets.splice(index, 1);
+                } else if (checkBulletHitPlayer(bullet, player1)) {
+                    player1.health -= 10;
+                    player2.bullets.splice(index, 1);
+                } else {
+                    drawBullet(bullet);
+                }
+            });
+
+            requestAnimationFrame(updateGame);
         }
-        update();
+
+        // Initialize game
+        updateGame();
     </script>
 </body>
 </html>
