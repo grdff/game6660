@@ -9,7 +9,26 @@
             border: 1px solid black;
         }
 
-        /* تحكم اللاعب */
+        /* شاشة اختيار الشخصية */
+        .character-selection {
+            display: none;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .character-button {
+            margin: 20px;
+            padding: 10px 20px;
+            border: none;
+            background-color: lightgray;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
         .control-buttons {
             position: fixed;
             bottom: 10px;
@@ -38,71 +57,43 @@
             border: none;
             border-radius: 50%;
         }
-        
-        .control-buttons-2 {
-            position: fixed;
-            bottom: 10px;
-            left: 70px;
-        }
-
-        .control-button-2 {
-            width: 50px;
-            height: 50px;
-            margin: 5px;
-            background-color: lightgray;
-            border: none;
-            font-size: 20px;
-            border-radius: 50%;
-        }
-
-        .fire-button-2 {
-            position: fixed;
-            bottom: 10px;
-            right: 100px;
-            width: 80px;
-            height: 80px;
-            background-color: blue;
-            color: white;
-            font-size: 20px;
-            border: none;
-            border-radius: 50%;
-        }
-
-        /* إخفاء أزرار التحكم الخاصة باللاعب 2 بشكل افتراضي */
-        .control-buttons-2,
-        .fire-button-2 {
-            display: none;
-        }
     </style>
-    <!-- Firebase compat libraries for non-modular environments -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-    <h1>لعبة قتال بسيطة</h1>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-
-    <!-- أزرار التحكم للاعب 1 -->
-    <div class="control-buttons" id="controlsPlayer1">
-        <button class="control-button" id="upBtn1">↑</button><br>
-        <button class="control-button" id="leftBtn1">←</button>
-        <button class="control-button" id="downBtn1">↓</button>
-        <button class="control-button" id="rightBtn1">→</button>
+    <div id="selectionScreen" class="character-selection">
+        <h1>اختر شخصيتك</h1>
+        <button class="character-button" id="character1">شخصية 1</button>
+        <button class="character-button" id="character2">شخصية 2</button>
     </div>
 
-    <!-- زر إطلاق النار للاعب 1 -->
-    <button class="fire-button" id="fireBtn1">إطلاق</button>
+    <div id="gameScreen" class="game-screen">
+        <h1>لعبة قتال بسيطة</h1>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <!-- أزرار التحكم للاعب 2 -->
-    <div class="control-buttons-2" id="controlsPlayer2">
-        <button class="control-button-2" id="upBtn2">↑</button><br>
-        <button class="control-button-2" id="leftBtn2">←</button>
-        <button class="control-button-2" id="downBtn2">↓</button>
-        <button class="control-button-2" id="rightBtn2">→</button>
+        <!-- أزرار التحكم للاعب 1 -->
+        <div class="control-buttons" id="controlsPlayer1">
+            <button class="control-button" id="upBtn1">↑</button><br>
+            <button class="control-button" id="leftBtn1">←</button>
+            <button class="control-button" id="downBtn1">↓</button>
+            <button class="control-button" id="rightBtn1">→</button>
+        </div>
+
+        <!-- زر إطلاق النار للاعب 1 -->
+        <button class="fire-button" id="fireBtn1">إطلاق</button>
+
+        <!-- أزرار التحكم للاعب 2 -->
+        <div class="control-buttons" id="controlsPlayer2">
+            <button class="control-button" id="upBtn2">↑</button><br>
+            <button class="control-button" id="leftBtn2">←</button>
+            <button class="control-button" id="downBtn2">↓</button>
+            <button class="control-button" id="rightBtn2">→</button>
+        </div>
+
+        <!-- زر إطلاق النار للاعب 2 -->
+        <button class="fire-button" id="fireBtn2">إطلاق</button>
     </div>
-
-    <!-- زر إطلاق النار للاعب 2 -->
-    <button class="fire-button-2" id="fireBtn2">إطلاق</button>
 
     <script>
         // Firebase configuration
@@ -123,52 +114,42 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Initialize player and game data
+        // Game and player data
         let player1 = { x: 100, y: 100, width: 50, height: 50, color: 'blue', speed: 5, health: 100, bullets: [] };
         let player2 = { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5, health: 100, bullets: [] };
         const bulletSpeed = 8;
-        const maxDistanceToHit = 200; // مسافة الإصابة أكبر
+        const maxDistanceToHit = 200;
 
-        // حواجز
-        const obstacles = [
-            { x: 300, y: 200, width: 100, height: 100 },  // حاجز في وسط الشاشة
-            { x: 500, y: 400, width: 150, height: 50 }    // حاجز آخر
-        ];
+        // Screen elements
+        const selectionScreen = document.getElementById('selectionScreen');
+        const gameScreen = document.getElementById('gameScreen');
 
-        // Function to draw players
-        function drawPlayer(player) {
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+        // Show game screen when both players have selected characters
+        function startGame() {
+            selectionScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
         }
 
-        // Function to draw bullets
-        function drawBullet(bullet) {
-            ctx.fillStyle = 'yellow';
-            ctx.fillRect(bullet.x, bullet.y, 10, 10);
-        }
+        // Handle character selection
+        document.getElementById('character1').addEventListener('click', () => {
+            db.ref('players/player1').set({ character: 'Character1' });
+            checkIfBothPlayersReady();
+        });
 
-        // Function to draw obstacles
-        function drawObstacles() {
-            ctx.fillStyle = 'gray';
-            obstacles.forEach(obstacle => {
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        document.getElementById('character2').addEventListener('click', () => {
+            db.ref('players/player2').set({ character: 'Character2' });
+            checkIfBothPlayersReady();
+        });
+
+        function checkIfBothPlayersReady() {
+            db.ref('players').once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data.player1 && data.player2) {
+                    if (data.player1.character && data.player2.character) {
+                        startGame();
+                    }
+                }
             });
-        }
-
-        // Check for collision with obstacles
-        function checkCollision(obj, obstacle) {
-            return obj.x < obstacle.x + obstacle.width &&
-                   obj.x + 10 > obstacle.x &&
-                   obj.y < obstacle.y + obstacle.height &&
-                   obj.y + 10 > obstacle.y;
-        }
-
-        // Check if bullet hits player
-        function checkBulletHitPlayer(bullet, player) {
-            return bullet.x < player.x + player.width &&
-                   bullet.x + 10 > player.x &&
-                   bullet.y < player.y + player.height &&
-                   bullet.y + 10 > player.y;
         }
 
         // Sync player data with Firebase
@@ -199,24 +180,16 @@
         function handleMovement(player, direction) {
             switch (direction) {
                 case 'ArrowUp':
-                    if (!checkCollision({ x: player.x, y: player.y - player.speed, width: player.width, height: player.height }, getObstacles())) {
-                        player.y -= player.speed;
-                    }
+                    player.y -= player.speed;
                     break;
                 case 'ArrowDown':
-                    if (!checkCollision({ x: player.x, y: player.y + player.speed, width: player.width, height: player.height }, getObstacles())) {
-                        player.y += player.speed;
-                    }
+                    player.y += player.speed;
                     break;
                 case 'ArrowLeft':
-                    if (!checkCollision({ x: player.x - player.speed, y: player.y, width: player.width, height: player.height }, getObstacles())) {
-                        player.x -= player.speed;
-                    }
+                    player.x -= player.speed;
                     break;
                 case 'ArrowRight':
-                    if (!checkCollision({ x: player.x + player.speed, y: player.y, width: player.width, height: player.height }, getObstacles())) {
-                        player.x += player.speed;
-                    }
+                    player.x += player.speed;
                     break;
             }
             updatePlayerInDB(1, player1);
