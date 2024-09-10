@@ -145,7 +145,7 @@
 
         function fire() {
             const distance = Math.sqrt(Math.pow(player1.x - player2.x, 2) + Math.pow(player1.y - player2.y, 2));
-            const maxDistanceToHit = 100; // المسافة المسموحة للإصابة
+            const maxDistanceToHit = 10000; // المسافة المسموحة للإصابة
 
             if (distance <= maxDistanceToHit) {
                 player2.health -= 10;
