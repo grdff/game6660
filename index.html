@@ -12,6 +12,9 @@
             display: none;
         }
     </style>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
 </head>
 <body>
     <h1>اختر شخصية لكل لاعب</h1>
@@ -19,15 +22,15 @@
     <!-- قائمة اختيار الشخصية للاعب 1 -->
     <div>
         <h2>اللاعب 1:</h2>
-        <button onclick="selectCharacter(1, 'character1')">شخصية 1</button>
-        <button onclick="selectCharacter(1, 'character2')">شخصية 2</button>
+        <button onclick="selectCharacter(1, 'player1')">شخصية 1</button>
+        <button onclick="selectCharacter(1, 'player2')">شخصية 2</button>
     </div>
 
     <!-- قائمة اختيار الشخصية للاعب 2 -->
     <div>
         <h2>اللاعب 2:</h2>
-        <button onclick="selectCharacter(2, 'character1')">شخصية 1</button>
-        <button onclick="selectCharacter(2, 'character2')">شخصية 2</button>
+        <button onclick="selectCharacter(2, 'player1')">شخصية 1</button>
+        <button onclick="selectCharacter(2, 'player2')">شخصية 2</button>
     </div>
 
     <!-- عرض التحكم لكل لاعب -->
@@ -55,19 +58,56 @@
             player2: { x: 600, y: 100, width: 50, height: 50, color: 'red', speed: 5 }
         };
 
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgv4ga8tVfSjo-t_i4s6QrWMKwtLE5B1w",
+            authDomain: "wqty-dfc7b.firebaseapp.com",
+            databaseURL: "https://wqty-dfc7b-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "wqty-dfc7b",
+            storageBucket: "wqty-dfc7b.appspot.com",
+            messagingSenderId: "445541680133",
+            appId: "1:445541680133:web:0a6a3368f222542e1a886c"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         function selectCharacter(player, character) {
             if (player === 1) {
                 player1 = players[character];
                 document.getElementById('controlsPlayer1').style.display = 'block';
+                updatePlayerInDB(1, player1);  // تحديث بيانات اللاعب 1 في Firebase
             } else if (player === 2) {
                 player2 = players[character];
                 document.getElementById('controlsPlayer2').style.display = 'block';
+                updatePlayerInDB(2, player2);  // تحديث بيانات اللاعب 2 في Firebase
             }
 
             if (player1 && player2) {
                 startGame();
             }
         }
+
+        // تحديث موقع اللاعب في Firebase
+        function updatePlayerInDB(playerNumber, playerData) {
+            db.ref('players/player' + playerNumber).set({
+                x: playerData.x,
+                y: playerData.y,
+                color: playerData.color
+            });
+        }
+
+        // الاستماع للتغييرات في بيانات Firebase
+        db.ref('players').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data.player1) {
+                player1 = data.player1;
+            }
+            if (data.player2) {
+                player2 = data.player2;
+            }
+        });
 
         function drawPlayer(player) {
             ctx.fillStyle = player.color;
@@ -89,6 +129,9 @@
             if (e.key === 's') player2.y += player2.speed;
             if (e.key === 'a') player2.x -= player2.speed;
             if (e.key === 'd') player2.x += player2.speed;
+
+            updatePlayerInDB(1, player1);
+            updatePlayerInDB(2, player2);
         }
 
         function update() {
