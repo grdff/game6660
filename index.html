@@ -144,7 +144,10 @@
         document.getElementById('fireBtn').addEventListener('click', () => fire());
 
         function fire() {
-            if (Math.abs(player1.x - player2.x) < 50 && Math.abs(player1.y - player2.y) < 50) {
+            const distance = Math.sqrt(Math.pow(player1.x - player2.x, 2) + Math.pow(player1.y - player2.y, 2));
+            const maxDistanceToHit = 100; // المسافة المسموحة للإصابة
+
+            if (distance <= maxDistanceToHit) {
                 player2.health -= 10;
                 updatePlayerInDB(2, player2);
                 alert("إصابة! صحة اللاعب 2: " + player2.health);
@@ -152,6 +155,8 @@
                     alert("اللاعب 1 فاز!");
                     resetGame();
                 }
+            } else {
+                alert("اللاعب بعيد جدًا للإصابة");
             }
         }
 
