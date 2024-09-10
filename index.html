@@ -8,43 +8,27 @@
         #gameCanvas {
             border: 1px solid black;
         }
-
-        /* شاشة اختيار الشخصية */
-        .character-selection {
-            display: none;
+        .character-selection, .game-screen {
             text-align: center;
-            margin-top: 50px;
+            margin-top: 20px;
         }
-
-        .character-button {
-            margin: 20px;
-            padding: 10px 20px;
+        .character-button, .control-button, .fire-button {
+            margin: 10px;
+            padding: 10px;
             border: none;
             background-color: lightgray;
             font-size: 20px;
             cursor: pointer;
         }
-
-        .game-screen {
-            display: none;
-        }
-
         .control-buttons {
             position: fixed;
             bottom: 10px;
             left: 10px;
         }
-
         .control-button {
             width: 50px;
             height: 50px;
-            margin: 5px;
-            background-color: lightgray;
-            border: none;
-            font-size: 20px;
-            border-radius: 50%;
         }
-
         .fire-button {
             position: fixed;
             bottom: 10px;
@@ -54,7 +38,6 @@
             background-color: red;
             color: white;
             font-size: 20px;
-            border: none;
             border-radius: 50%;
         }
     </style>
@@ -68,30 +51,25 @@
         <button class="character-button" id="character2">شخصية 2</button>
     </div>
 
-    <div id="gameScreen" class="game-screen">
+    <div id="gameScreen" class="game-screen" style="display: none;">
         <h1>لعبة قتال بسيطة</h1>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-        <!-- أزرار التحكم للاعب 1 -->
+        <!-- أزرار التحكم -->
         <div class="control-buttons" id="controlsPlayer1">
-            <button class="control-button" id="upBtn1">↑</button><br>
+            <button class="control-button" id="upBtn1">↑</button>
             <button class="control-button" id="leftBtn1">←</button>
             <button class="control-button" id="downBtn1">↓</button>
             <button class="control-button" id="rightBtn1">→</button>
         </div>
-
-        <!-- زر إطلاق النار للاعب 1 -->
         <button class="fire-button" id="fireBtn1">إطلاق</button>
 
-        <!-- أزرار التحكم للاعب 2 -->
         <div class="control-buttons" id="controlsPlayer2">
-            <button class="control-button" id="upBtn2">↑</button><br>
+            <button class="control-button" id="upBtn2">↑</button>
             <button class="control-button" id="leftBtn2">←</button>
             <button class="control-button" id="downBtn2">↓</button>
             <button class="control-button" id="rightBtn2">→</button>
         </div>
-
-        <!-- زر إطلاق النار للاعب 2 -->
         <button class="fire-button" id="fireBtn2">إطلاق</button>
     </div>
 
@@ -120,14 +98,48 @@
         const bulletSpeed = 8;
         const maxDistanceToHit = 200;
 
-        // Screen elements
-        const selectionScreen = document.getElementById('selectionScreen');
-        const gameScreen = document.getElementById('gameScreen');
+        // Obstacles (example)
+        const obstacles = [
+            { x: 300, y: 200, width: 100, height: 20 },
+            { x: 500, y: 400, width: 20, height: 100 }
+        ];
+
+        // Functions to draw players, bullets, and obstacles
+        function drawPlayer(player) {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        function drawBullet(bullet) {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(bullet.x, bullet.y, 5, 10);
+        }
+
+        function drawObstacles() {
+            ctx.fillStyle = 'gray';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+        }
+
+        function checkCollision(bullet, obstacle) {
+            return bullet.x < obstacle.x + obstacle.width &&
+                bullet.x + 5 > obstacle.x &&
+                bullet.y < obstacle.y + obstacle.height &&
+                bullet.y + 10 > obstacle.y;
+        }
+
+        function checkBulletHitPlayer(bullet, player) {
+            return bullet.x < player.x + player.width &&
+                bullet.x + 5 > player.x &&
+                bullet.y < player.y + player.height &&
+                bullet.y + 10 > player.y;
+        }
 
         // Show game screen when both players have selected characters
         function startGame() {
-            selectionScreen.style.display = 'none';
-            gameScreen.style.display = 'block';
+            document.getElementById('selectionScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
         }
 
         // Handle character selection
@@ -202,18 +214,17 @@
         document.getElementById('leftBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowLeft'));
         document.getElementById('rightBtn1').addEventListener('click', () => handleMovement(player1, 'ArrowRight'));
 
+        document.getElementById('fireBtn1').addEventListener('click', () => fire(player1));
+
         // Functions to handle button presses on mobile for player 2
         document.getElementById('upBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowUp'));
         document.getElementById('downBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowDown'));
         document.getElementById('leftBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowLeft'));
         document.getElementById('rightBtn2').addEventListener('click', () => handleMovement(player2, 'ArrowRight'));
 
-        // Button to fire bullets for player 1
-        document.getElementById('fireBtn1').addEventListener('click', () => fire(player1));
-
-        // Button to fire bullets for player 2
         document.getElementById('fireBtn2').addEventListener('click', () => fire(player2));
 
+        // Handle firing bullets
         function fire(player) {
             player.bullets.push({ x: player.x + player.width / 2, y: player.y, direction: 'up' });
         }
@@ -222,14 +233,14 @@
         function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // رسم اللاعبين
+            // Draw players
             drawPlayer(player1);
             drawPlayer(player2);
 
-            // رسم الحواجز
+            // Draw obstacles
             drawObstacles();
 
-            // تحديث الرصاصات
+            // Update bullets
             player1.bullets.forEach((bullet, index) => {
                 bullet.y -= bulletSpeed;
 
